@@ -46,7 +46,10 @@ class MyApplication(object):
                 obj_widget.delete(0, tk.END)
                 # self.form_data[field_name]['value'] = StringVar()
             elif obj_type == 'checkbox':
-                self.form_data[field_name]['value'] = False
+                self.form_data[field_name]['value'] = BooleanVar()
+            elif obj_type == 'radiobutton':
+                default = self.form_data[field_name].get('default', StringVar())
+                self.form_data[field_name]['value'].set(default)
 
     # Content management
     def set_form_title(self, title_label):
@@ -119,6 +122,34 @@ class MyApplication(object):
         self.form_data[name]['form_object'] = checkbox
         self.data_frame_row += 1
 
+    def add_radiobutton(self, label, name, values):
+        self.form_data[name] = {}
+        self.form_data[name]['type'] = 'radiobutton'
+        self.form_data[name]['field'] = name
+        self.form_data[name]['label'] = label
+        self.form_data[name]['value'] = StringVar()
+        default = list(values.keys())[0]
+        self.form_data[name]['default'] = default
+        self.form_data[name]['value'].set(default)
+        self.form_data[name]['form_object'] = []
+
+        data_frame = self.form_frames[1]
+
+        radio_frame = LabelFrame(data_frame, text=label, bd=2, relief='groove')
+        radio_frame.grid(row=self.data_frame_row, column=0)
+        frame_row = 0
+        for key, val in values.items():
+            radiobutton = Radiobutton(radio_frame,
+                                      text=val,
+                                      variable=self.form_data[name]['value'],
+                                      value=key
+                                      )
+            radiobutton.grid(row=frame_row, column=0, sticky="w")
+            self.form_data[name]['form_object'].append(radiobutton)
+            frame_row += 1
+
+        self.data_frame_row += 1
+
     def add_action_button(self, label, special):
         action_frame = self.form_frames[2]
         attr = getattr(self, f"button_{special}")
@@ -133,10 +164,18 @@ class MyApplication(object):
             print(field_name, self.form_data[field_name])
             label = self.form_data[field_name]['label']
             required = self.form_data[field_name].get('required', False)
-            value = self.form_data[field_name]['value'].get()
+            field_type = self.form_data[field_name]['type']
+            if field_type == 'entry':
+                value = self.form_data[field_name]['value'].get()
+            elif field_type == 'checkbox':
+                value = self.form_data[field_name]['value'].get()
+            elif field_type == 'radiobutton':
+                value = self.form_data[field_name]['value'].get()
+            else:
+                value = self.form_data[field_name]['value']
             if required and not value:
-                mbox = MessageBox.showerror(title='Error de Validación',
-                                            message=f"El campo {label} es obligatorio.")
+                MessageBox.showerror(title='Error de Validación',
+                                     message=f"El campo {label} es obligatorio.")
                 error = True
                 break
             vals[field_name] = value
@@ -144,13 +183,12 @@ class MyApplication(object):
             MessageBox.showinfo("Validación de datos", "Los datos se han cargado correctamente.")
 
             res = MessageBox.askyesno(title="Salir", message="¿Desea salir?")
-            print(res, type(res))
             if res:
                 self.main_window.destroy()
             else:
                 self.reset_fields()
                 self.form_fields[0].focus_set()
-        print(vals)
+        print("Valores Capturados", vals)
         return vals
 
     def button_close(self):
@@ -162,11 +200,13 @@ class MyApplication(object):
 
 app = MyApplication("Mi Primera Aplicación")
 app.set_icon()
-app.set_form_title("Datos Personales")
+app.set_form_title("Usuarios")
 app.add_field_entry(label="Nombre", name="name", required=True)
 app.add_field_entry(label="Apellido", name="lastname")
 app.add_field_entry(label="Correo Electrónico", name="email", required=True)
 app.add_checkbox(label="Activo", name="active")
+app.add_radiobutton(label="Tipo de Usuario", name='user_type', values={'internal': 'Interno', 'portal': 'Portal',
+                                                                       'public'  : 'Public'})
 app.add_action_button("Enviar", special="send")
 app.add_action_button("Cerrar", special="close")
 app.start()
