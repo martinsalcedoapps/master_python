@@ -50,6 +50,9 @@ class MyApplication(object):
             elif obj_type == 'radiobutton':
                 default = self.form_data[field_name].get('default', StringVar())
                 self.form_data[field_name]['value'].set(default)
+            elif obj_type == 'optionmenu':
+                default = self.form_data[field_name].get('default', StringVar())
+                self.form_data[field_name]['value'].set(default)
 
     # Content management
     def set_form_title(self, title_label):
@@ -122,13 +125,16 @@ class MyApplication(object):
         self.form_data[name]['form_object'] = checkbox
         self.data_frame_row += 1
 
-    def add_radiobutton(self, label, name, values):
+    def add_radiobutton(self, label, name, values, default_value=None):
         self.form_data[name] = {}
         self.form_data[name]['type'] = 'radiobutton'
         self.form_data[name]['field'] = name
         self.form_data[name]['label'] = label
         self.form_data[name]['value'] = StringVar()
-        default = list(values.keys())[0]
+        if default_value:
+            default = default_value
+        else:
+            default = list(values.keys())[0]
         self.form_data[name]['default'] = default
         self.form_data[name]['value'].set(default)
         self.form_data[name]['form_object'] = []
@@ -148,6 +154,53 @@ class MyApplication(object):
             self.form_data[name]['form_object'].append(radiobutton)
             frame_row += 1
 
+        self.data_frame_row += 1
+
+    def add_optionmenu(self, label, name, values, default_value=None):
+        """
+        Agrega un OptionMenu a un Frame.
+
+        :param label: El texto para el Label que se coloca junto al OptionMenu.
+        :param name: El nombre del campo en el formulario.
+        :param values: Una lista de opciones para el OptionMenu.
+        :param default_value: Valor inicial del OptionMenu (opcional).
+        """
+        # Inicializar la estructura de datos en form_data
+        self.form_data[name] = {}
+        self.form_data[name]['type'] = 'optionmenu'
+        self.form_data[name]['field'] = name
+        self.form_data[name]['label'] = label
+        self.form_data[name]['value'] = StringVar()
+
+        # Establecer el valor inicial del OptionMenu
+        if default_value:
+            default = values.get(default_value)
+            self.form_data[name]['value'].set(default)
+            self.form_data[name]['default'] = default
+        else:
+            default = values.get(list(values.keys())[0])
+            self.form_data[name]['value'].set(default)  # Seleccionar la primera opción como predeterminada
+            self.form_data[name]['default'] = default
+
+
+        # Obtener el Frame en el que se colocará el OptionMenu
+        data_frame = self.form_frames[1]
+
+        option_frame = Frame(data_frame)
+        option_frame.grid(row=self.data_frame_row, column=0, padx=10)
+
+        # Crear un Label para el OptionMenu
+        label_widget = Label(option_frame, text=label)
+        label_widget.grid(row=0, column=0, padx=5, pady=5)
+
+        # Crear el OptionMenu
+        optionmenu = OptionMenu(option_frame, self.form_data[name]['value'], *values.values())
+        optionmenu.grid(row=0, column=1, padx=5, pady=5)
+
+        # Almacenar el OptionMenu en form_object
+        self.form_data[name]['form_object'] = optionmenu
+
+        # Incrementar el contador de filas para la siguiente entrada en el formulario
         self.data_frame_row += 1
 
     def add_action_button(self, label, special):
@@ -171,6 +224,8 @@ class MyApplication(object):
                 value = self.form_data[field_name]['value'].get()
             elif field_type == 'radiobutton':
                 value = self.form_data[field_name]['value'].get()
+            elif field_type == 'optionmenu':
+                value = self.form_data[field_name]['value']
             else:
                 value = self.form_data[field_name]['value']
             if required and not value:
@@ -205,8 +260,15 @@ app.add_field_entry(label="Nombre", name="name", required=True)
 app.add_field_entry(label="Apellido", name="lastname")
 app.add_field_entry(label="Correo Electrónico", name="email", required=True)
 app.add_checkbox(label="Activo", name="active")
-app.add_radiobutton(label="Tipo de Usuario", name='user_type', values={'internal': 'Interno', 'portal': 'Portal',
-                                                                       'public'  : 'Public'})
+app.add_radiobutton(label="Tipo de Usuario", name='user_type',
+                    values={'internal': 'Interno',
+                            'portal'  : 'Portal',
+                            'public'  : 'Public'})
+app.add_optionmenu(label="Grupo de Acceso", name='access_group',
+                   values={'user'      : 'Usuario',
+                           'supervisor': 'Supervisor',
+                           'admin'     : 'Administrador del Sistema'},
+                   default_value='user')
 app.add_action_button("Enviar", special="send")
 app.add_action_button("Cerrar", special="close")
 app.start()
