@@ -6,15 +6,16 @@ from PIL import Image, ImageTk
 
 
 class MyApplication(object):
-    form_window = Tk()
-    form_row = 0
+    main_window = Tk()
+    data_frame_row = 0
     form_data = {}
     form_frames = []
     form_fields = []
+    action_buttons = 0
 
     def __init__(self, title):
-        self.form_window.title(title)
-        self.form_window.geometry('500x500')
+        self.main_window.title(title)
+        # self.main_window.geometry('500x500')
         self.set_icon()
 
     def set_icon(self):
@@ -22,56 +23,87 @@ class MyApplication(object):
         xbm_path = os.path.abspath("./imagenes/icon.xbm")
         png_path = os.path.abspath("./imagenes/icon16.png")
         jpg_path = os.path.abspath("./imagenes/icon.jpg")
-        self.form_window.title("Interfaz gráfica con Python")
+        self.main_window.title("Interfaz gráfica con Python")
         try:
-            self.form_window.iconbitmap(ico_path)
+            self.main_window.iconbitmap(ico_path)
         except BaseException as errstr:
             try:
                 images = PhotoImage(file=png_path)
-                self.form_window.iconphoto(True, images)
+                self.main_window.iconphoto(True, images)
             except BaseException as errstr:
                 print("Icon can not be set")
 
-    def set_form_title(self, form_title):
-        form_title = Label(self.form_window,
-                           text=form_title,
-                           cnf={'fg'    : "blue",
-                                'bg'    : 'gray',
-                                'height': 1}
-                           )
-        form_title.pack(anchor=N, fill=X)
-
     def start(self):
-        self.form_window.mainloop()
+        self.main_window.mainloop()
 
-    def add_field_entry(self, label, field_name, required=False):
+    # Helper methods
+
+    def reset_fields(self):
+        for field_name in self.form_data:
+            self.form_data[field_name]['form_entry'].delete(0, tk.END)
+
+    # Content management
+    def set_form_title(self, title_label):
+
+        title_frame = Frame(self.main_window, bd=2, relief='groove')
+        title_frame.grid(row=0, column=0, padx=10, pady=10)
+
+        back_color = '#e6f7ff'
+
+        title_label = Label(title_frame, text=title_label, cnf={'bg': back_color}, width=50,
+                            font=('Ubuntu', 12, 'bold'))
+        title_label.grid(row=0, column=0, columnspan=2)
+        self.form_frames.append(title_frame)
+
+        data_frame = LabelFrame(self.main_window, text="Introduzca los siguientes campos", bd=2, relief='groove')
+        data_frame.grid(row=1, column=0, padx=10, ipady=5, ipadx=5)
+
+        self.form_frames.append(data_frame)
+
+        action_frame = Frame(self.main_window, bd=2, relief='groove', pady=5, padx=10)
+        action_frame.grid(row=2, column=0, columnspan=2)
+
+        self.form_frames.append(action_frame)
+
+    def add_field_entry(self, label, name, required=False):
         entry_config = {'bg': 'white'}
-        label_config = {'width': 15}
+        label_config = {'width': 20}
 
-        self.form_data[field_name] = {}
-        self.form_data[field_name]['field'] = field_name
-        self.form_data[field_name]['label'] = label
-        self.form_data[field_name]['value'] = StringVar()
-        self.form_data[field_name]['required'] = required
+        self.form_data[name] = {}
+        self.form_data[name]['field'] = name
+        self.form_data[name]['label'] = label
+        self.form_data[name]['value'] = StringVar()
+        self.form_data[name]['required'] = required
 
-        field_frame = Frame(self.form_window, cnf={'height': '2'})
-        label = Label(field_frame,
-                      text=f"{label}:",
-                      padx=10,
-                      cnf=label_config)
-        entry = Entry(field_frame,
-                      textvariable=self.form_data[field_name]['value'],
-                      cnf=entry_config)
-        label.grid(row=self.form_row, column=0)
-        entry.grid(row=self.form_row, column=1)
-        field_frame.pack(anchor=W)
-        self.form_data[field_name]['form_label'] = label
-        self.form_data[field_name]['form_entry'] = entry
-        self.form_frames.append(field_frame)
-        self.form_fields.append(entry)
-        self.form_row += 1
+        parent_frame = self.form_frames[1]
 
-    def button_command(self):
+        field_frame = Frame(parent_frame, cnf={'height': '2'})
+        field_frame.grid(row=self.data_frame_row, column=0, padx=10)
+
+        field_label = Label(field_frame,
+                            text=label,
+                            cnf=label_config,
+                            anchor='e',
+                            font=('Arial', 11, 'bold' if required else ''))
+        field_label.grid(row=0, column=0)
+        field_entry = Entry(field_frame, textvariable=self.form_data[name]['value'], cnf=entry_config)
+        field_entry.grid(row=0, column=1)
+
+        self.form_data[name]['form_label'] = field_label
+        self.form_data[name]['form_entry'] = field_entry
+
+        self.data_frame_row += 1
+
+        self.form_fields.append(field_entry)
+
+    def add_button(self, label, special):
+        action_frame = self.form_frames[2]
+        attr = getattr(self, f"button_{special}")
+        button = Button(action_frame, text=label, command=attr)
+        button.grid(row=0, column=self.action_buttons)
+        self.action_buttons += 1
+
+    def button_send(self):
         vals = {}
         error = False
         for field_name in self.form_data:
@@ -83,32 +115,34 @@ class MyApplication(object):
                 mbox = MessageBox.showerror(title='Error de Validación',
                                             message=f"El campo {label} es obligatorio.")
                 error = True
+                break
             vals[field_name] = value
         if not error:
             MessageBox.showinfo("Validación de datos", "Los datos se han cargado correctamente.")
-        res = MessageBox.askyesno(title="Salir", message="¿Desea salir?")
-        print(res, type(res))
-        if res:
-            self.form_window.destroy()
-        else:
-            for field_name in self.form_data:
-                self.form_data[field_name]['form_entry'].delete(0, tk.END)
-            self.form_fields[0].focus_set()
-        print(vals)
 
+            res = MessageBox.askyesno(title="Salir", message="¿Desea salir?")
+            print(res, type(res))
+            if res:
+                self.main_window.destroy()
+            else:
+                self.reset_fields()
+                self.form_fields[0].focus_set()
+        print(vals)
         return vals
 
-    def add_buttom(self, label):
-        button = Button(self.form_frames[-1], text=label, command=self.button_command)
-        button.grid(row=self.form_row, column=1)
-        self.form_row += 1
+    def button_close(self):
+        self.main_window.destroy()
+
+
+# end content management -----
 
 
 app = MyApplication("Mi Primera Aplicación")
 app.set_icon()
 app.set_form_title("Datos Personales")
-app.add_field_entry(label="Nombre", field_name="name", required=True)
-app.add_field_entry(label="Apellido", field_name="lastname")
-app.add_field_entry(label="Correo Electrónico", field_name="email", required=True)
-app.add_buttom("Enviar")
+app.add_field_entry(label="Nombre", name="name", required=True)
+app.add_field_entry(label="Apellido", name="lastname")
+app.add_field_entry(label="Correo Electrónico", name="email", required=True)
+app.add_button("Enviar", special="send")
+app.add_button("Cerrar", special="close")
 app.start()
