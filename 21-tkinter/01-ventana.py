@@ -40,7 +40,13 @@ class MyApplication(object):
 
     def reset_fields(self):
         for field_name in self.form_data:
-            self.form_data[field_name]['form_entry'].delete(0, tk.END)
+            obj_type = self.form_data[field_name].get('type')
+            obj_widget = self.form_data[field_name].get('form_object')
+            if obj_type == 'entry':
+                obj_widget.delete(0, tk.END)
+                # self.form_data[field_name]['value'] = StringVar()
+            elif obj_type == 'checkbox':
+                self.form_data[field_name]['value'] = False
 
     # Content management
     def set_form_title(self, title_label):
@@ -70,14 +76,15 @@ class MyApplication(object):
         label_config = {'width': 20}
 
         self.form_data[name] = {}
+        self.form_data[name]['type'] = 'entry'
         self.form_data[name]['field'] = name
         self.form_data[name]['label'] = label
         self.form_data[name]['value'] = StringVar()
         self.form_data[name]['required'] = required
 
-        parent_frame = self.form_frames[1]
+        data_frame = self.form_frames[1]
 
-        field_frame = Frame(parent_frame, cnf={'height': '2'})
+        field_frame = Frame(data_frame, cnf={'height': '2'})
         field_frame.grid(row=self.data_frame_row, column=0, padx=10)
 
         field_label = Label(field_frame,
@@ -90,13 +97,29 @@ class MyApplication(object):
         field_entry.grid(row=0, column=1)
 
         self.form_data[name]['form_label'] = field_label
-        self.form_data[name]['form_entry'] = field_entry
+        self.form_data[name]['form_object'] = field_entry
 
         self.data_frame_row += 1
 
         self.form_fields.append(field_entry)
 
-    def add_button(self, label, special):
+    def add_checkbox(self, label, name):
+        self.form_data[name] = {}
+        self.form_data[name]['type'] = 'checkbox'
+        self.form_data[name]['field'] = name
+        self.form_data[name]['label'] = label
+        self.form_data[name]['value'] = IntVar()
+
+        data_frame = self.form_frames[1]
+        checkbox = Checkbutton(data_frame,
+                               text=label,
+                               variable=self.form_data[name]['value'],
+                               onvalue=True, offvalue=False)
+        checkbox.grid(row=self.data_frame_row, column=0)
+        self.form_data[name]['form_object'] = checkbox
+        self.data_frame_row += 1
+
+    def add_action_button(self, label, special):
         action_frame = self.form_frames[2]
         attr = getattr(self, f"button_{special}")
         button = Button(action_frame, text=label, command=attr)
@@ -109,7 +132,7 @@ class MyApplication(object):
         for field_name in self.form_data:
             print(field_name, self.form_data[field_name])
             label = self.form_data[field_name]['label']
-            required = self.form_data[field_name]['required']
+            required = self.form_data[field_name].get('required', False)
             value = self.form_data[field_name]['value'].get()
             if required and not value:
                 mbox = MessageBox.showerror(title='Error de Validación',
@@ -143,6 +166,7 @@ app.set_form_title("Datos Personales")
 app.add_field_entry(label="Nombre", name="name", required=True)
 app.add_field_entry(label="Apellido", name="lastname")
 app.add_field_entry(label="Correo Electrónico", name="email", required=True)
-app.add_button("Enviar", special="send")
-app.add_button("Cerrar", special="close")
+app.add_checkbox(label="Activo", name="active")
+app.add_action_button("Enviar", special="send")
+app.add_action_button("Cerrar", special="close")
 app.start()
